@@ -1,0 +1,10 @@
+PASS: read-only exact firmware handshake
+PASS: autodetected PIC16F84A geometry
+PASS: reject another firmware revision
+PASS: reject an unknown target ID
+PASS: reject an inconsistent silicon ID
+PASS: reject target name mismatch without manual override
+PASS: reject unexpected device memory geometry
+PASS: reject active code protection before ERASE
+PASS: reject force-calibration before ERASE
+9 compiled-host protocol checks passed. No physical hardware used.

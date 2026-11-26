@@ -1,0 +1,220 @@
+TAP version 13
+# Subtest: an unavailable backup destination prevents every erase command
+ok 1 - an unavailable backup destination prevents every erase command
+  ---
+  duration_ms: 18.919192
+  ...
+# Subtest: native transaction saves a durable backup, burns with an exact target, and checks readback
+ok 2 - native transaction saves a durable backup, burns with an exact target, and checks readback
+  ---
+  duration_ms: 14.523023
+  ...
+# Subtest: no erase after wrong target
+ok 3 - no erase after wrong target
+  ---
+  duration_ms: 2.472973
+  ...
+# Subtest: no erase after protected memory
+ok 4 - no erase after protected memory
+  ---
+  duration_ms: 22.214768
+  ...
+# Subtest: no erase after cancel preflight
+ok 5 - no erase after cancel preflight
+  ---
+  duration_ms: 3.669095
+  ...
+# Subtest: no erase after cancel erase
+ok 6 - no erase after cancel erase
+  ---
+  duration_ms: 11.85219
+  ...
+# Subtest: readback failure invalidates the session and cannot be reported as success
+ok 7 - readback failure invalidates the session and cannot be reported as success
+  ---
+  duration_ms: 8.351625
+  ...
+# Subtest: write requires a live, matching, previously verified session
+ok 8 - write requires a live, matching, previously verified session
+  ---
+  duration_ms: 3.067679
+  ...
+# Subtest: a corrupt image is rejected before applying target voltage
+ok 9 - a corrupt image is rejected before applying target voltage
+  ---
+  duration_ms: 1.785937
+  ...
+# Subtest: missing physical port cannot connect or upload
+ok 10 - missing physical port cannot connect or upload
+  ---
+  duration_ms: 1.944621
+  ...
+# Subtest: firmware upload is flash-only, uses the right bootloader speed, verifies, and handshakes
+ok 11 - firmware upload is flash-only, uses the right bootloader speed, verifies, and handshakes
+  ---
+  duration_ms: 1705.097632
+  ...
+# Subtest: incompatible firmware never creates an authorization
+ok 12 - incompatible firmware never creates an authorization
+  ---
+  duration_ms: 4.496665
+  ...
+# Subtest: exclusive operation lock prevents overlapping requests
+ok 13 - exclusive operation lock prevents overlapping requests
+  ---
+  duration_ms: 9.138244
+  ...
+# Subtest: safe-loop example is aligned PIC code and round-trips losslessly
+ok 14 - safe-loop example is aligned PIC code and round-trips losslessly
+  ---
+  duration_ms: 2.13392
+  ...
+# Subtest: rejects missing EOF
+ok 15 - rejects missing EOF
+  ---
+  duration_ms: 0.312171
+  ...
+# Subtest: rejects duplicate EOF
+ok 16 - rejects duplicate EOF
+  ---
+  duration_ms: 0.132925
+  ...
+# Subtest: rejects no data
+ok 17 - rejects no data
+  ---
+  duration_ms: 0.112534
+  ...
+# Subtest: rejects invalid checksum
+ok 18 - rejects invalid checksum
+  ---
+  duration_ms: 0.146438
+  ...
+# Subtest: rejects non-hex digits
+ok 19 - rejects non-hex digits
+  ---
+  duration_ms: 0.086634
+  ...
+# Subtest: rejects incorrect length
+ok 20 - rejects incorrect length
+  ---
+  duration_ms: 0.124766
+  ...
+# Subtest: rejects odd byte address
+ok 21 - rejects odd byte address
+  ---
+  duration_ms: 0.090866
+  ...
+# Subtest: rejects incomplete word
+ok 22 - rejects incomplete word
+  ---
+  duration_ms: 0.136722
+  ...
+# Subtest: rejects unsupported record type
+ok 23 - rejects unsupported record type
+  ---
+  duration_ms: 0.156874
+  ...
+# Subtest: rejects overlapping records
+ok 24 - rejects overlapping records
+  ---
+  duration_ms: 0.136666
+  ...
+# Subtest: rejects malformed EOF
+ok 25 - rejects malformed EOF
+  ---
+  duration_ms: 0.14471
+  ...
+# Subtest: rejects malformed extension
+ok 26 - rejects malformed extension
+  ---
+  duration_ms: 0.114403
+  ...
+# Subtest: rejects 64K address wrap
+ok 27 - rejects 64K address wrap
+  ---
+  duration_ms: 1.173251
+  ...
+# Subtest: rejects oversized content
+ok 28 - rejects oversized content
+  ---
+  duration_ms: 0.085298
+  ...
+# Subtest: extended address records cannot bypass device boundaries
+ok 29 - extended address records cannot bypass device boundaries
+  ---
+  duration_ms: 0.429554
+  ...
+# Subtest: PIC16F84A: allow last legal word and EEPROM byte, reject protected regions
+ok 30 - PIC16F84A: allow last legal word and EEPROM byte, reject protected regions
+  ---
+  duration_ms: 0.329239
+  ...
+# Subtest: PIC16F628A: allow last legal word and EEPROM byte, reject protected regions
+ok 31 - PIC16F628A: allow last legal word and EEPROM byte, reject protected regions
+  ---
+  duration_ms: 0.261422
+  ...
+# Subtest: PIC16F648A: allow last legal word and EEPROM byte, reject protected regions
+ok 32 - PIC16F648A: allow last legal word and EEPROM byte, reject protected regions
+  ---
+  duration_ms: 0.21339
+  ...
+# Subtest: PIC12F675: allow last legal word and EEPROM byte, reject protected regions
+ok 33 - PIC12F675: allow last legal word and EEPROM byte, reject protected regions
+  ---
+  duration_ms: 0.212248
+  ...
+# Subtest: PIC16F877A: allow last legal word and EEPROM byte, reject protected regions
+ok 34 - PIC16F877A: allow last legal word and EEPROM byte, reject protected regions
+  ---
+  duration_ms: 0.230736
+  ...
+# Subtest: native validation rejects virtual ports, unapproved boards and missing setup approval
+ok 35 - native validation rejects virtual ports, unapproved boards and missing setup approval
+  ---
+  duration_ms: 0.307972
+  ...
+# Subtest: firmware identity and geometry are exact, not substring matches
+ok 36 - firmware identity and geometry are exact, not substring matches
+  ---
+  duration_ms: 0.589029
+  ...
+# Subtest: PIC16F84A: preserves metadata and verifies every program and EEPROM byte
+ok 37 - PIC16F84A: preserves metadata and verifies every program and EEPROM byte
+  ---
+  duration_ms: 30.067162
+  ...
+# Subtest: PIC16F628A: preserves metadata and verifies every program and EEPROM byte
+ok 38 - PIC16F628A: preserves metadata and verifies every program and EEPROM byte
+  ---
+  duration_ms: 28.480315
+  ...
+# Subtest: PIC16F648A: preserves metadata and verifies every program and EEPROM byte
+ok 39 - PIC16F648A: preserves metadata and verifies every program and EEPROM byte
+  ---
+  duration_ms: 23.670875
+  ...
+# Subtest: PIC12F675: preserves metadata and verifies every program and EEPROM byte
+ok 40 - PIC12F675: preserves metadata and verifies every program and EEPROM byte
+  ---
+  duration_ms: 14.915019
+  ...
+# Subtest: PIC16F877A: preserves metadata and verifies every program and EEPROM byte
+ok 41 - PIC16F877A: preserves metadata and verifies every program and EEPROM byte
+  ---
+  duration_ms: 55.31887
+  ...
+# Subtest: protected PIC12F675 code and EEPROM both block erase; OSCCAL must survive
+ok 42 - protected PIC12F675 code and EEPROM both block erase; OSCCAL must survive
+  ---
+  duration_ms: 5.79526
+  ...
+1..42
+# tests 42
+# suites 0
+# pass 42
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2125.527882

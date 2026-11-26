@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.research/
+test-results/
+playwright-report/
+*.o
+*.log
+__pycache__/

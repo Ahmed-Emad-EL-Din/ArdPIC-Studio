@@ -1,0 +1,4 @@
+{
+  "_comment": "Optional components the app may download. Each entry needs an HTTPS URL and the SHA-256 of the exact file. Bundled programmer tools are not listed here.",
+  "components": []
+}
