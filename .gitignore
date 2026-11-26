@@ -6,3 +6,5 @@ playwright-report/
 *.o
 *.log
 __pycache__/
+output/
+build/

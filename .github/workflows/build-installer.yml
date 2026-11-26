@@ -1,0 +1,161 @@
+name: Build installer
+
+# Builds ArdPIC Studio into a single Windows x64 installer (.exe).
+# Every run produces the installer as an artifact; v* tags additionally
+# publish a GitHub Release with the installer and its SHA-256.
+# See docs/single-exe-installer-plan.md for the design and requirements.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # required only for the release step on v* tags
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: node --test tests/*.test.mjs
+
+      - name: Verify pinned firmware and avrdude.conf
+        run: |
+          set -euo pipefail
+          echo "742dacffec6e9a609b6789384dde1671d7c52393fbe6237caa4c6204076c3384  desktop/firmware/uno/ProgramPic.ino.hex" | sha256sum -c -
+          echo "742dacffec6e9a609b6789384dde1671d7c52393fbe6237caa4c6204076c3384  desktop/firmware/nano/ProgramPic.ino.hex" | sha256sum -c -
+          echo "43937f83cd46a8b6117feecd5766cedbd32fcf92dff840a093d5fa3c8745b736  desktop/bin/avrdude.conf" | sha256sum -c -
+
+      - name: Fetch and verify pinned Arduino AVRDUDE artifact
+        run: |
+          set -euo pipefail
+          ZIP="$RUNNER_TEMP/avrdude.zip"
+          curl -fsSL -o "$ZIP" \
+            https://downloads.arduino.cc/tools/avrdude-6.3.0-arduino17-i686-w64-mingw32.zip
+          mkdir -p "$RUNNER_TEMP/avrdude"
+          unzip -q -o "$ZIP" -d "$RUNNER_TEMP/avrdude"
+          AVRDUDE_EXE="$(find "$RUNNER_TEMP/avrdude" -name avrdude.exe -type f | head -n1)"
+          LIBUSB_DLL="$(find "$RUNNER_TEMP/avrdude" -name libusb0.dll -type f | head -n1)"
+          test -n "$AVRDUDE_EXE" || { echo "avrdude.exe not found in artifact"; exit 1; }
+          test -n "$LIBUSB_DLL" || { echo "libusb0.dll not found in artifact"; exit 1; }
+          cp "$AVRDUDE_EXE" desktop/bin/avrdude.exe
+          cp "$LIBUSB_DLL" desktop/bin/libusb0.dll
+          python3 - <<'PY'
+          import hashlib, json, sys
+          expected = json.load(open("desktop/binary-checksums.json"))
+          ok = True
+          for name in ("avrdude.exe", "avrdude.conf", "libusb0.dll"):
+              digest = hashlib.sha256(open(f"desktop/bin/{name}", "rb").read()).hexdigest()
+              match = digest == expected[name]
+              print(f"{name}: {digest} {'OK' if match else 'MISMATCH (expected ' + expected[name] + ')'}")
+              ok = ok and match
+          sys.exit(0 if ok else 1)
+          PY
+
+      - name: Install MinGW-w64 (MSYS2)
+        run: |
+          set -euo pipefail
+          /c/msys64/usr/bin/bash.exe -lc 'pacman -S --needed --noconfirm mingw-w64-x86_64-gcc mingw-w64-x86_64-binutils'
+          cygpath -w /c/msys64/mingw64/bin >> "$GITHUB_PATH"
+
+      - name: Build native host and launcher
+        run: sh scripts/build-host.sh
+
+      - name: Package portable app (fetches pinned Electron 45.5.0)
+        run: python3 scripts/package-windows.py
+
+      - name: Stage portable folder
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile, pathlib
+          src = pathlib.Path("public/downloads/ArdPIC-Studio-Windows-x64.zip")
+          dst = pathlib.Path("build/staging")
+          assert src.is_file(), f"missing {src}"
+          dst.mkdir(parents=True, exist_ok=True)
+          with zipfile.ZipFile(src) as z:
+              z.extractall(dst)
+          staged = dst / "ArdPIC Studio"
+          assert (staged / "ArdPIC Studio.exe").is_file(), "launcher missing after unpack"
+          assert (staged / "runtime" / "electron.exe").is_file(), "Electron runtime missing after unpack"
+          print(f"staged {staged}")
+          PY
+
+      - name: Ensure Inno Setup is installed
+        run: |
+          set -euo pipefail
+          ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          if [ ! -f "$ISCC" ]; then
+            choco install innosetup -y --no-progress
+          fi
+          test -f "$ISCC" && echo "Inno Setup ready"
+
+      - name: Build single-file installer
+        run: |
+          set -euo pipefail
+          ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+          STAGE="$(cygpath -w build/staging/ArdPIC\ Studio)"
+          OUT="$(cygpath -w output)"
+          mkdir -p output
+          "$ISCC" //DSourceDir="$STAGE" //DOutputDir="$OUT" installer/ardpic-studio.iss
+          ls -la output/
+
+      - name: Hash installer
+        run: |
+          set -euo pipefail
+          cd output
+          EXE="$(ls ArdPIC-Studio-Setup-*-x64.exe)"
+          sha256sum "$EXE" > "${EXE%.exe}.sha256"
+          cat "${EXE%.exe}.sha256"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArdPIC-Studio-Setup-x64
+          path: output/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            output/ArdPIC-Studio-Setup-*-x64.exe \
+            output/*.sha256 \
+            --title "ArdPIC Studio ${GITHUB_REF_NAME}" \
+            --notes "Unsigned engineering build. Complete docs/acceptance.md before connecting hardware. See docs/hardware-safety.md and docs/single-exe-installer-plan.md. Full details: docs/verification.md."
