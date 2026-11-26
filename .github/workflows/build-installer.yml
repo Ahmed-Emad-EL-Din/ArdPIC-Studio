@@ -91,7 +91,20 @@ jobs:
           cygpath -w /c/msys64/mingw64/bin >> "$GITHUB_PATH"
 
       - name: Build native host and launcher
-        run: sh scripts/build-host.sh
+        run: |
+          set -euo pipefail
+          # Make sure the MSYS2 MinGW-w64 toolchain is visible even if
+          # $GITHUB_PATH propagation did not carry over.
+          export PATH="/c/msys64/mingw64/bin:$PATH"
+          # MSYS2 ships both triplet-prefixed (x86_64-w64-mingw32-g++) and plain
+          # names (g++) depending on the package; pick whichever exists.
+          CXX_BIN="$(command -v x86_64-w64-mingw32-g++ || command -v g++ || command -v c++)"
+          WINDRES_BIN="$(command -v x86_64-w64-mingw32-windres || command -v windres)"
+          test -n "$CXX_BIN" || { echo "No MinGW-w64 C++ compiler found on PATH"; exit 1; }
+          test -n "$WINDRES_BIN" || { echo "No MinGW-w64 windres found on PATH"; exit 1; }
+          echo "Using CXX=$CXX_BIN"
+          echo "Using WINDRES=$WINDRES_BIN"
+          CXX="$CXX_BIN" WINDRES="$WINDRES_BIN" sh scripts/build-host.sh
 
       - name: Package portable app (fetches pinned Electron 45.5.0)
         run: python3 scripts/package-windows.py
