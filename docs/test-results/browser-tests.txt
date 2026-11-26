@@ -1,0 +1,20 @@
+
+Running 15 tests using 2 workers
+
+  ✓   1 tests/workbench.spec.ts:21:1 › initial workspace is offline and locked (1.3s)
+  ✓   3 tests/workbench.spec.ts:46:1 › new hardware settings invalidate a verified programmer (3.3s)
+  ✓   2 tests/workbench.spec.ts:30:1 › complete virtual write requires confirmation and verifies its readback (5.5s)
+  ✓   4 tests/workbench.spec.ts:56:1 › target changes invalidate a file even when its address range would fit (1.6s)
+  ✓   5 tests/workbench.spec.ts:66:1 › a desktop handshaking error stays visible in its dialog and keeps writing locked (3.2s)
+  ✓   6 tests/workbench.spec.ts:92:1 › bad checksum clears any previously valid file and locks writes (3.4s)
+  ✓   7 tests/workbench.spec.ts:110:1 › native file selection accepts a valid HEX and rejects out-of-range memory (1.7s)
+  ✓   8 tests/workbench.spec.ts:127:1 › device search and profile selection update the workbench (1.8s)
+  ✓  10 tests/workbench.spec.ts:158:1 › session log is searchable, exportable and cleared only after confirmation (2.4s)
+  ✓   9 tests/workbench.spec.ts:138:1 › firmware uploader supports Nano old bootloader in isolated simulation (3.7s)
+  ✓  12 tests/workbench.spec.ts:187:1 › walkthrough, wiring checklist, documentation, and author credit work (3.5s)
+  ✓  11 tests/workbench.spec.ts:174:1 › saved settings survive reload but hardware trust does not (4.6s)
+  ✓  14 tests/workbench.spec.ts:230:1 › narrow screens retain usable navigation, settings and dialogs (2.6s)
+  ✓  13 tests/workbench.spec.ts:217:1 › new session is cancellable and resets connection and file (4.7s)
+  ✓  15 tests/workbench.spec.ts:254:1 › desktop, tablet and phone sizes render without horizontal overflow (2.7s)
+
+  15 passed (25.4s)

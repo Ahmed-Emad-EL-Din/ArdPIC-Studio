@@ -1,0 +1,9 @@
+*.hex -text
+*.ino -text
+*.exe binary
+*.dll binary
+*.ico binary
+*.zip binary
+*.gz binary
+*.png binary
+*.ttf binary
