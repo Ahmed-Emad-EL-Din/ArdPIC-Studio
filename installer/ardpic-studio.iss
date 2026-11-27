@@ -18,7 +18,7 @@
 #endif
 
 [Setup]
-AppId={{B7E6F2A1-3D48-4C5B-9A2F-1C0E8D5A6B7C}
+AppId=ArdPIC Studio.B7E6F2A1-3D48-4C5B-9A2F-1C0E8D5A6B7C
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}

@@ -115,8 +115,8 @@ jobs:
           echo "Using CXX=$CXX_BIN"
           echo "Using WINDRES=$WINDRES_BIN"
           if ! CXX="$CXX_BIN" WINDRES="$WINDRES_BIN" sh scripts/build-host.sh > build-host.log 2>&1; then
-            echo "::error::scripts/build-host.sh failed; last 50 lines:"
-            tail -n 50 build-host.log | sed 's/^/::error::/'
+            echo "::error::scripts/build-host.sh failed; last 12 lines:"
+            tail -n 12 build-host.log | sed 's/^/::error::/'
             exit 1
           fi
           cat build-host.log
@@ -125,8 +125,8 @@ jobs:
         run: |
           set -euo pipefail
           if ! python3 scripts/package-windows.py > package.log 2>&1; then
-            echo "::error::scripts/package-windows.py failed; last 50 lines:"
-            tail -n 50 package.log | sed 's/^/::error::/'
+            echo "::error::scripts/package-windows.py failed; last 12 lines:"
+            tail -n 12 package.log | sed 's/^/::error::/'
             exit 1
           fi
           cat package.log
@@ -165,8 +165,8 @@ jobs:
           OUT="$(cygpath -w output)"
           mkdir -p output
           if ! "$ISCC" //DSourceDir="$STAGE" //DOutputDir="$OUT" installer/ardpic-studio.iss > iscc.log 2>&1; then
-            echo "::error::Inno Setup compile failed; last 50 lines:"
-            tail -n 50 iscc.log | sed 's/^/::error::/'
+            echo "::error::Inno Setup compile failed; last 12 lines:"
+            tail -n 12 iscc.log | sed 's/^/::error::/'
             exit 1
           fi
           cat iscc.log
