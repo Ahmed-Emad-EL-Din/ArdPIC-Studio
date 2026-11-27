@@ -163,7 +163,8 @@ jobs:
           OUT="$(cygpath -w output)"
           mkdir -p output
           if ! "$ISCC" //DSourceDir="$STAGE" //DOutputDir="$OUT" installer/ardpic-studio.iss > iscc.log 2>&1; then
-            echo "::error::ISCC failed: $(tail -n 15 iscc.log | tr '\n' '|')"
+            echo "iscc.log size: $(wc -c < iscc.log) bytes"
+            echo "::error::ISCC failed: $(wc -c < iscc.log) bytes; tail: $(tr '\r' '\n' < iscc.log | grep -vE '^\s*$' | tail -n 12 | tr '\n' '|')"
             exit 1
           fi
           cat iscc.log
