@@ -62,7 +62,13 @@ jobs:
             sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1 libxss1 libx11-xcb1
 
       - name: Download and verify pinned Electron, stage smoke app
-        run: python3 scripts/prepare-desktop-smoke.py
+        run: |
+          set -euo pipefail
+          if ! python3 scripts/prepare-desktop-smoke.py > smoke-prepare.log 2>&1; then
+            echo "::error::prepare-desktop-smoke.py failed: $(tail -n 12 smoke-prepare.log | tr '\n' '|')"
+            exit 1
+          fi
+          cat smoke-prepare.log
 
       - name: Launch packaged renderer under Electron
         run: xvfb-run -a node tests/desktop-smoke.mjs
