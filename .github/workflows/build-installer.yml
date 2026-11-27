@@ -159,8 +159,8 @@ jobs:
         run: |
           set -euo pipefail
           ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
-          STAGE="$(cygpath -w build/staging/ArdPIC\ Studio)"
-          OUT="$(cygpath -w output)"
+          STAGE="$(cygpath -w "$PWD/build/staging/ArdPIC Studio")"
+          OUT="$(cygpath -w "$PWD/output")"
           mkdir -p output
           if ! "$ISCC" //DSourceDir="$STAGE" //DOutputDir="$OUT" installer/ardpic-studio.iss > iscc.log 2>&1; then
             echo "iscc.log size: $(wc -c < iscc.log) bytes"
