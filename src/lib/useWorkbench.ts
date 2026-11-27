@@ -16,8 +16,13 @@ import type {
 } from "./types";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+let fallbackLogId = 0;
+const nextLogId = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `log-${Date.now().toString(36)}-${++fallbackLogId}`;
 const entry = (level: LogLevel, message: string): LogEntry => ({
-  id: crypto.randomUUID(),
+  id: nextLogId(),
   time: new Date().toISOString(),
   level,
   message,

@@ -102,6 +102,13 @@ export function PortField({
           <span aria-hidden="true">&#x21bb;</span>
         </button>
       </div>
+      {w.ports.length === 0 && (
+        <span className="hint">
+          No hardware port detected. CH340-based Arduino clones need the WCH
+          CH341SER USB serial driver; install it, replug the board, then
+          refresh. See System check for details.
+        </span>
+      )}
     </div>
   );
 }

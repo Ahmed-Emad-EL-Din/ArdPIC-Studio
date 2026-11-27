@@ -13,6 +13,14 @@
 - The exact renderer and native application files extracted from the Windows package were smoke-tested under Electron 45.5.0 on Linux with Xvfb. The offline CSP allowed the local bundle, Node APIs were absent from the renderer, the isolated preload and trusted-frame IPC check worked, physical access on a non-Windows host was rejected, and a complete virtual programming/readback cycle passed.
 - The production Vite build and a production npm dependency audit passed. These results are not certification of the Windows binaries or the hardware circuit.
 
+## Round 4 (blank-window fix, diagnostics, CH340 support)
+
+- Fixed the class of failure that left the installed workbench an empty window: the renderer now wraps the app in an error boundary that shows a readable panel with the actual error and a reload action, the main process disables GPU acceleration for this text UI, mirrors renderer console output and crashes into a local `renderer.log`, and shows a blocking error instead of a silent white frame if the page fails to load or the renderer dies.
+- Packaging now embeds the single-file renderer as exact bytes (no text-mode newline translation after hashing) and the build/archive verifiers both assert that the shipped CSP authorizes the embedded script; a mismatch fails the build instead of shipping a page the browser refuses to run.
+- CH340 support: System check now detects WCH CH340/CH341/CH9102 USB-serial bridges (VID_1A86) by hardware ID, including devices with a driver problem (code 28/10) and devices present but never assigned a COM port, and names the official CH341SER driver in its guidance. The port picker shows the same pointer when no hardware port is found.
+- The CI pipeline gained a Linux `desktop-smoke` gate ahead of the Windows installer build: it downloads the pinned Electron (verified against the release SHASUMS256.txt), stages the exact packaged app layout, launches it under Xvfb, and asserts the workbench renders, Node APIs are absent, IPC is isolated, and a full virtual programming cycle passes.
+- 64 Node unit tests pass (including 11 new CH340 classification cases), 11 compiled-host protocol checks pass, strict TypeScript and the production build pass. Browser end-to-end tests remain a separate manual step. Physical Windows and hardware qualification are still open release gates; see `acceptance.md`.
+
 ## Independent release gates
 
 Automated adapter tests inject an in-memory command runner. PTY tests exercise real host code, not a real PIC. Neither establishes correct physical voltages, timing, or compatibility. A compiled Windows PE is not proof of a successful native Windows launch. The full electrical matrix, independent programmer comparison, native Windows acceptance, code signing, and publication review remain unverified. See `acceptance.md`.
@@ -25,9 +33,13 @@ node --test tests/*.test.mjs
 python3 tests/protocol_smoke.py
 npx playwright test
 npm run build
+python3 scripts/prepare-desktop-smoke.py   # pinned Linux Electron, hash-verified
+xvfb-run -a node tests/desktop-smoke.mjs   # packaged renderer boots under Electron
 python3 scripts/package-windows.py
 python3 scripts/verify-package.py
 ```
+
+CI runs the same gates: the Linux `desktop-smoke` job must pass before the Windows installer is built.
 ## Round 2 (interface rebuild and system check)
 
 - 42 Node tests, 9 compiled host protocol checks, 15 browser tests, TypeScript, and the production build pass.

@@ -1,6 +1,7 @@
 """Build the portable Windows app using the pinned official Electron runtime."""
 from pathlib import Path
 import hashlib
+import sys
 import json
 import shutil
 import subprocess
@@ -39,13 +40,16 @@ with tempfile.TemporaryDirectory(prefix='ardpic-package-') as tmp:
     shutil.copy2(ROOT / 'src/lib/hex.mjs', app / 'src/lib/hex.mjs')
     (app / 'dist').mkdir()
     # A single-file renderer has a hash-based CSP; it never needs a network connection.
-    import re, base64
-    html = (ROOT / 'dist/index.html').read_text()
-    scripts = re.findall(r'<script\b[^>]*>(.*?)</script>', html, re.S)
-    sources = ' '.join("'sha256-" + base64.b64encode(hashlib.sha256(s.encode()).digest()).decode() + "'" for s in scripts)
-    csp = f"default-src 'none'; script-src {sources}; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
-    html = html.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="' + csp + '">', 1)
-    (app / 'dist/index.html').write_text(html)
+    # The page is embedded, hashed, and written as exact bytes: no text-mode
+    # newline translation is allowed to alter the embedded script after hashing.
+    sys.path.insert(0, str(Path(__file__).parent))
+    from renderer_csp import embed_csp, check_script_authorized
+    html = embed_csp((ROOT / 'dist/index.html').read_bytes().decode('utf-8'))
+    target = app / 'dist/index.html'
+    target.write_bytes(html.encode('utf-8'))
+    # Self-check the shipped bytes exactly as the browser will hash them.
+    check_script_authorized(target.read_bytes().decode('utf-8'))
+    print('CSP self-check passed: embedded renderer script is authorized by the shipped policy.')
     shutil.copy2(ROOT / 'public/favicon.svg', app / 'dist/favicon.svg')
     shutil.copy2(ROOT / 'desktop/ArdPIC Studio.exe', package / 'ArdPIC Studio.exe')
     shutil.copytree(ROOT / 'docs', package / 'Documentation')

@@ -7,8 +7,10 @@ installation, no online component downloads.
 
 **Status.** Plan only. The CI workflow that implements it lives at
 `.github/workflows/build-installer.yml`, and the Inno Setup definition at
-`installer/ardpic-studio.iss`. Hardware qualification is **still required** before any
-release is used to program real chips (`docs/acceptance.md`).
+`installer/ardpic-studio.iss`. The workflow now gates on a Linux `desktop-smoke` job that
+launches the exact packaged renderer under the pinned Electron on Xvfb before the Windows
+installer is built, so a blank window cannot ship unnoticed. Hardware qualification is
+**still required** before any release is used to program real chips (`docs/acceptance.md`).
 
 ---
 

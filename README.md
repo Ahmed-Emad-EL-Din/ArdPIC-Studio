@@ -12,7 +12,7 @@ Download `public/downloads/ArdPIC-Studio-Windows-x64.zip` (also served at `/down
 
 ## Supported profiles
 
-- **Arduino:** Uno R3 and classic Nano ATmega328P, including the old Nano bootloader. No Uno R4, Nano Every, or 3.3 V substitutes.
+- **Arduino:** Uno R3 and classic Nano ATmega328P, including the old Nano bootloader, and CH340-based clones built around the WCH CH340/CH341/CH9102 USB-serial bridges (VID `1A86`). Clones need the official WCH CH341SER USB serial driver on Windows before any COM port appears; System check detects a missing, faulty, or unassigned driver and says exactly what to install. No Uno R4, Nano Every, or 3.3 V substitutes.
 - **PIC:** PIC16F84A, PIC16F628A, PIC16F648A, PIC12F675, PIC16F877A. These are software profiles, not a claim that every combination has been bench tested.
 - **Circuit:** the [Ho-Ro 1.8 schematic](https://github.com/Ho-Ro/ArdPicProg) with ProgramPIC 1.8.horo. The [original rweather ZIF circuit](https://rweather.github.io/ardpicprog/pic14_zif_circuit.html) uses different pins and VPP polarity. They are not interchangeable.
 
@@ -51,6 +51,9 @@ node --test tests/*.test.mjs
 npx playwright install --with-deps chromium
 npx playwright test
 npm run build
+python3 tests/protocol_smoke.py       # compiled host vs a PTY, no hardware
+python3 scripts/prepare-desktop-smoke.py   # downloads pinned Linux Electron (hash-checked)
+xvfb-run -a node tests/desktop-smoke.mjs   # packaged renderer boots under Electron
 ```
 
 `src/App.tsx` is the app entry point. The production browser app is `dist/index.html`. The browser supports all file validation and simulated workflows; physical writes are restricted to the native adapter.
