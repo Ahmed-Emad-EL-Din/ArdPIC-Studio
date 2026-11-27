@@ -49,7 +49,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Unit tests
-        run: node --test tests/*.test.mjs
+        run: node --test --test-reporter=spec tests/*.test.mjs
 
       - name: Verify pinned firmware and avrdude.conf
         run: |
@@ -91,10 +91,43 @@ jobs:
           cygpath -w /c/msys64/mingw64/bin >> "$GITHUB_PATH"
 
       - name: Build native host and launcher
-        run: sh scripts/build-host.sh
+        run: |
+          set -euo pipefail
+          # Make sure the MSYS2 MinGW-w64 toolchain is visible even if
+          # $GITHUB_PATH propagation did not carry over.
+          export PATH="/c/msys64/mingw64/bin:$PATH"
+          # Inspect the toolchain first so failures are diagnosable from annotations.
+          {
+            echo "mingw64/bin compiler-like tools:"
+            ls /c/msys64/mingw64/bin/ | grep -iE 'g\+\+|c\+\+|gcc|windres|binutils' || true
+            echo "triplet g++: $(command -v x86_64-w64-mingw32-g++ || true)"
+            echo "plain g++:  $(command -v g++ || true)"
+            echo "triplet wr: $(command -v x86_64-w64-mingw32-windres || true)"
+            echo "plain wr:   $(command -v windres || true)"
+          } > toolchain.log 2>&1
+          CXX_BIN="$(command -v x86_64-w64-mingw32-g++ || command -v g++ || command -v c++ || true)"
+          WINDRES_BIN="$(command -v x86_64-w64-mingw32-windres || command -v windres || true)"
+          if [ -z "$CXX_BIN" ] || [ -z "$WINDRES_BIN" ]; then
+            cat toolchain.log
+            sed 's/^/::error::/' toolchain.log
+            exit 1
+          fi
+          echo "Using CXX=$CXX_BIN"
+          echo "Using WINDRES=$WINDRES_BIN"
+          if ! CXX="$CXX_BIN" WINDRES="$WINDRES_BIN" sh scripts/build-host.sh > build-host.log 2>&1; then
+            echo "::error::build-host.sh failed: $(tail -n 12 build-host.log | tr '\n' '|')"
+            exit 1
+          fi
+          cat build-host.log
 
       - name: Package portable app (fetches pinned Electron 45.5.0)
-        run: python3 scripts/package-windows.py
+        run: |
+          set -euo pipefail
+          if ! python3 scripts/package-windows.py > package.log 2>&1; then
+            echo "::error::package-windows.py failed: $(tail -n 12 package.log | tr '\n' '|')"
+            exit 1
+          fi
+          cat package.log
 
       - name: Stage portable folder
         run: |
@@ -126,10 +159,15 @@ jobs:
         run: |
           set -euo pipefail
           ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
-          STAGE="$(cygpath -w build/staging/ArdPIC\ Studio)"
-          OUT="$(cygpath -w output)"
+          STAGE="$(cygpath -w "$PWD/build/staging/ArdPIC Studio")"
+          OUT="$(cygpath -w "$PWD/output")"
           mkdir -p output
-          "$ISCC" //DSourceDir="$STAGE" //DOutputDir="$OUT" installer/ardpic-studio.iss
+          if ! "$ISCC" //DSourceDir="$STAGE" //DOutputDir="$OUT" installer/ardpic-studio.iss > iscc.log 2>&1; then
+            echo "iscc.log size: $(wc -c < iscc.log) bytes"
+            echo "::error::ISCC failed: $(wc -c < iscc.log) bytes; tail: $(tr '\r' '\n' < iscc.log | grep -vE '^\s*$' | tail -n 12 | tr '\n' '|')"
+            exit 1
+          fi
+          cat iscc.log
           ls -la output/
 
       - name: Hash installer

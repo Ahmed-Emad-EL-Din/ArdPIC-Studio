@@ -70,6 +70,24 @@ test("rejects a malicious manifest before fetching", async (t) => {
   await assert.rejects(service.repair("components"), /approved release manifest/);
   assert.equal(fetched, false);
 });
+test("component manifest with CRLF line endings from a Windows checkout is accepted", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "ardpic-crlf-manifest-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const raw = await readFile(
+    new URL("../desktop/components.json", import.meta.url),
+  );
+  // Normalize first: on a Windows checkout the file may already be CRLF.
+  const lf = Buffer.from(raw.toString("utf8").replace(/\r\n/g, "\n"));
+  const crlf = Buffer.from(lf.toString("utf8").replace(/\n/g, "\r\n"));
+  const service = createSetupService({
+    userData: dir,
+    backupDir: join(dir, "backups"),
+    listDevices: async () => [],
+    readManifest: async () => crlf,
+  });
+  const report = await service.check();
+  assert.equal(report.items.find((i) => i.id === "components").status, "ok");
+});
 test("default release requires no optional downloads and fails closed on unsupported OS", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "ardpic-default-"));
   t.after(() => rm(dir, { recursive: true, force: true }));

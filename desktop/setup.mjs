@@ -25,6 +25,12 @@ const FIRMWARE = [
   ],
 ];
 const digest = (data) => createHash("sha256").update(data).digest("hex");
+// Checkouts on Windows (core.autocrlf) can rewrite LF to CRLF in text files.
+// Pinned hashes refer to the canonical LF bytes, so also try the LF-normalized form.
+const digestText = (data) =>
+  digest(Buffer.from(String(data).replace(/\r\n/g, "\n")));
+const matchesDigest = (data, expected) =>
+  digest(data) === expected || digestText(data) === expected;
 const item = (id, label, status, detail, fix = null) => ({
   id,
   label,
@@ -76,7 +82,7 @@ export function createSetupService({
 
   async function manifest() {
     const raw = await readManifest();
-    if (digest(raw) !== APPROVED_MANIFEST && !approvedComponents.length)
+    if (!matchesDigest(raw, APPROVED_MANIFEST) && !approvedComponents.length)
       throw new Error("Component manifest has changed. Reinstall the application.");
     const data = JSON.parse(raw.toString("utf8"));
     if (!Array.isArray(data.components) || data.components.length !== approvedComponents.length)
@@ -156,7 +162,7 @@ export function createSetupService({
     );
     for (const [name, expected] of Object.entries(checksums)) {
       const data = await readFile(join(here, "bin", name)).catch(() => null);
-      const ok = Boolean(data) && digest(data) === expected;
+      const ok = Boolean(data) && matchesDigest(data, expected);
       items.push(
         ok
           ? item(
@@ -175,7 +181,7 @@ export function createSetupService({
     }
     for (const [board, label, path] of FIRMWARE) {
       const data = await readFile(path).catch(() => null);
-      const ok = Boolean(data) && digest(data) === APPROVED_FIRMWARE;
+      const ok = Boolean(data) && matchesDigest(data, APPROVED_FIRMWARE);
       items.push(
         ok
           ? item(

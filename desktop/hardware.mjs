@@ -25,6 +25,12 @@ import {
 const execute = promisify(execFile);
 const root = fileURLToPath(new URL("./", import.meta.url));
 const digest = (data) => createHash("sha256").update(data).digest("hex");
+// Checkouts on Windows (core.autocrlf) can rewrite LF to CRLF in text files.
+// Pinned hashes refer to the canonical bytes, so also try the LF-normalized form.
+const digestText = (data) =>
+  digest(Buffer.from(String(data).replace(/\r\n/g, "\n")));
+const matchesDigest = (data, expected) =>
+  digest(data) === expected || digestText(data) === expected;
 const approvedFirmware =
   "742dacffec6e9a609b6789384dde1671d7c52393fbe6237caa4c6204076c3384";
 
@@ -60,7 +66,7 @@ async function command(tool, args, cwd = root, timeout = 30000) {
   for (const file of tool === "avrdude.exe"
     ? [tool, "libusb0.dll", "avrdude.conf"]
     : [tool]) {
-    if (digest(await readFile(join(root, "bin", file))) !== manifest[file])
+    if (!matchesDigest(await readFile(join(root, "bin", file)), manifest[file]))
       throw new Error(
         "Bundled tool integrity check failed. Reinstall a trusted build.",
       );
@@ -180,8 +186,10 @@ export function createHardwareService({
           board.id === "uno" ? "uno" : "nano",
         );
         if (
-          digest(await readFile(join(folder, "ProgramPic.ino.hex"))) !==
-          approvedFirmware
+          !matchesDigest(
+            await readFile(join(folder, "ProgramPic.ino.hex")),
+            approvedFirmware,
+          )
         )
           throw new Error("Firmware hash mismatch. Upload blocked.");
         if (
