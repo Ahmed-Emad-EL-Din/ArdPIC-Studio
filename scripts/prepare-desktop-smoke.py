@@ -55,11 +55,16 @@ if not sums.exists():
     download(f'{BASE}/SHASUMS256.txt', sums)
 expected = None
 for line in sums.read_text().splitlines():
-    digest, _, name = line.partition('  ')
-    if name.strip() == RUNTIME_ZIP:
-        expected = digest.strip()
+    parts = line.split()
+    # Formats seen in the wild: "<sha256><space(s)><name>" and with a
+    # binary-mode indicator "<sha256> *<name>".
+    if len(parts) == 2 and parts[1].lstrip('*') == RUNTIME_ZIP:
+        expected = parts[0].strip()
         break
-assert expected, f'{RUNTIME_ZIP} not found in SHASUMS256.txt'
+assert expected, (
+    f'{RUNTIME_ZIP} not found in SHASUMS256.txt; first lines: '
+    + ' || '.join(sums.read_text().splitlines()[:5])
+)
 actual = sha256_file(archive)
 assert actual == expected, f'Electron runtime checksum mismatch: {actual} != {expected}'
 with zipfile.ZipFile(archive) as z:
