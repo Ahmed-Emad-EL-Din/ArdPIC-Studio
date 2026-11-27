@@ -39,7 +39,11 @@ const item = (id, label, status, detail, fix = null) => ({
   fix,
 });
 
-// Lists COM-port devices and their Windows driver error codes. Returns null off Windows.
+// Lists COM-port devices and WCH (CH340-family) USB-serial bridges, with their
+// Windows driver error codes. Arduino clones based on the CH340/CH341/CH9102
+// enumerate as COM ports once the WCH CH341SER driver is installed; before that
+// they show up without a COM name, so both cases are queried together.
+// Returns null off Windows.
 export async function serialDevices() {
   if (process.platform !== "win32") return null;
   const powershell = join(
@@ -50,7 +54,7 @@ export async function serialDevices() {
     "powershell.exe",
   );
   const script =
-    "Get-CimInstance Win32_PnPEntity | Where-Object { $_.Name -match '\\(COM\\d+\\)' } | Select-Object Name, ConfigManagerErrorCode | ConvertTo-Json -Compress";
+    "$devices = Get-CimInstance Win32_PnPEntity | Where-Object { $_.PNPDeviceID -like 'USB\\VID_1A86*' -or $_.Name -match '\\(COM\\d+\\)' } | Select-Object Name, ConfigManagerErrorCode, PNPDeviceID, HardwareID; if ($devices) { $devices | ConvertTo-Json -Compress }";
   const { stdout } = await execute(
     powershell,
     [
@@ -68,6 +72,101 @@ export async function serialDevices() {
   if (!text) return [];
   const data = JSON.parse(text);
   return Array.isArray(data) ? data : [data];
+}
+
+const WCH_VID = /VID_1A86/i;
+const WCH_PID_NAMES = {
+  "7523": "CH340",
+  "5523": "CH341",
+  "55D4": "CH9102",
+  "55DE": "CH343",
+};
+
+const flattenIds = (value) =>
+  (Array.isArray(value) ? value : [value])
+    .filter(Boolean)
+    .map(String)
+    .join(" ");
+
+function describeWch(ids) {
+  const haystack = ids.toUpperCase();
+  for (const [pid, name] of Object.entries(WCH_PID_NAMES))
+    if (haystack.includes(`PID_${pid}`)) return name;
+  return "CH340-family";
+}
+
+/**
+ * Classifies raw Win32_PnPEntity records into a USB-serial status summary.
+ * Pure and exported for tests. Never throws on odd input.
+ */
+export function classifySerialDevices(devices) {
+  if (devices === null || devices === undefined)
+    return {
+      status: "info",
+      faulty: false,
+      detail: "Windows device list is unavailable on this system.",
+    };
+  const list = (Array.isArray(devices) ? devices : [devices])
+    .filter((d) => d && typeof d === "object")
+    .map((d) => {
+      const ids = `${flattenIds(d.PNPDeviceID)} ${flattenIds(d.HardwareID)}`.trim();
+      const name = typeof d.Name === "string" ? d.Name.trim() : "";
+      const code = Number(d.ConfigManagerErrorCode) || 0;
+      const comMatch = /\((COM\d+)\)/i.exec(name);
+      const com = comMatch ? comMatch[1].toUpperCase() : null;
+      const wch = WCH_VID.test(ids);
+      return { name, code, com, wch, family: wch ? describeWch(ids) : null };
+    });
+  if (!list.length)
+    return {
+      status: "info",
+      faulty: false,
+      detail:
+        "No COM port is present. Connect the Arduino with a data-capable USB cable. If you use a CH340 clone, install the WCH CH341SER driver first.",
+    };
+  const faulty = list.filter((d) => d.code !== 0);
+  if (faulty.length) {
+    const wchFaults = faulty.filter((d) => d.wch);
+    if (wchFaults.length) {
+      const fault = wchFaults[0];
+      const where = fault.com ?? "no COM port assigned";
+      return {
+        status: "warning",
+        faulty: true,
+        detail: `WCH ${fault.family} USB serial (VID_1A86, ${where}) reports a driver problem (code ${fault.code}). Install the official WCH CH341SER USB serial driver from the chip maker, run the installer as administrator, reconnect the board, then check again. CH340-based Arduino clones need this driver before any COM port appears.`,
+      };
+    }
+    const fault = faulty[0];
+    return {
+      status: "warning",
+      faulty: true,
+      detail: `${fault.name || "USB serial device"} reports a driver problem (code ${fault.code}). Install the USB serial driver for this board, then check again.`,
+    };
+  }
+  const wchUnassigned = list.filter((d) => d.wch && !d.com);
+  if (wchUnassigned.length) {
+    const device = wchUnassigned[0];
+    return {
+      status: "warning",
+      faulty: false,
+      detail: `A WCH ${device.family} USB serial device (VID_1A86) is visible but Windows has not assigned a COM port. Replug the board, or reinstall the WCH CH341SER driver, then check again.`,
+    };
+  }
+  const wch = list.filter((d) => d.wch);
+  if (wch.length) {
+    const names = wch.map((d) => `${d.family} on ${d.com} (VID_1A86)`);
+    const others = list.filter((d) => !d.wch).map((d) => d.name).filter(Boolean);
+    return {
+      status: "ok",
+      faulty: false,
+      detail: names.concat(others).join("; "),
+    };
+  }
+  return {
+    status: "ok",
+    faulty: false,
+    detail: list.map((d) => d.name).filter(Boolean).join("; "),
+  };
 }
 
 export function createSetupService({
@@ -222,36 +321,12 @@ export function createSetupService({
   async function checkSerial() {
     try {
       const devices = await listDevices();
-      if (devices === null) {
-        return item(
-          "serial",
-          "USB serial ports",
-          "info",
-          "Windows device list is unavailable on this system.",
-        );
-      }
-      const faulty = devices.find((d) => d.ConfigManagerErrorCode);
-      if (faulty) {
-        return item(
-          "serial",
-          "USB serial driver",
-          "warning",
-          `${faulty.Name} reports a driver problem (code ${faulty.ConfigManagerErrorCode}). Install the USB serial driver for this board, then check again.`,
-        );
-      }
-      if (!devices.length) {
-        return item(
-          "serial",
-          "USB serial ports",
-          "info",
-          "No COM port is present. Connect the Arduino with a data-capable USB cable.",
-        );
-      }
+      const result = classifySerialDevices(devices);
       return item(
         "serial",
-        "USB serial ports",
-        "ok",
-        devices.map((d) => d.Name).join("; "),
+        result.faulty ? "USB serial driver" : "USB serial ports",
+        result.status,
+        result.detail,
       );
     } catch {
       return item(

@@ -1,6 +1,7 @@
 """Check the actual portable archive and extract its renderer for a smoke test."""
 import hashlib
 import json
+import sys
 from pathlib import Path
 import struct
 import zipfile
@@ -38,6 +39,10 @@ with zipfile.ZipFile(out) as z:
     assert not any(x.startswith(app + 'dist/downloads/') for x in z.namelist())
     html = z.read(app + 'dist/index.html')
     assert b'Content-Security-Policy' in html and b"connect-src 'none'" in html
+    # The shipped CSP must authorize the script bytes the browser will parse.
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from renderer_csp import check_script_authorized
+    check_script_authorized(html.decode('utf-8'))
     destination = ROOT / '.research/packaged-renderer'
     destination.mkdir(parents=True, exist_ok=True)
     (destination / 'index.html').write_bytes(html)
