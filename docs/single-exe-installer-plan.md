@@ -60,6 +60,7 @@ self-contained for the electrical side.
 | Inno Setup | 6 (CI: preinstalled / `choco install innosetup -y`) | Produces the single `.exe` installer |
 | Arduino AVRDUDE artifact | `https://downloads.arduino.cc/tools/avrdude-6.3.0-arduino17-i686-w64-mingw32.zip` | `avrdude.exe`, `avrdude.conf`, `libusb0.dll` |
 | GitHub Actions runner | `windows-latest` | Target platform for build + smoke |
+| Pillow (optional) | `pip install pillow` | Only to regenerate `desktop/app.ico` (`scripts/make-icon.py`); the committed ICO is used by default |
 
 Local reproduction is identical — the workflow is just these commands in order.
 
